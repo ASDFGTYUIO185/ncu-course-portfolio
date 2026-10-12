@@ -1,0 +1,31 @@
+# 操作系统与开发环境
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+
+# Python（后续实验脚本可能用到）
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Office 临时文件（写实验报告常见）
+~$*
+*.tmp
+
+# 敏感信息
+*.env
+secrets/
+config.local.*
+
+# 大型数据/输出文件（避免仓库过大）
+data/raw/
+output/
+*.zip
+*.7z
