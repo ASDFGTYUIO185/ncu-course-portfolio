@@ -7,19 +7,44 @@
 <style>
   html, body { margin: 0; height: 100%; background: #1a1a24; overflow: hidden; }
   canvas { display: block; width: 100vw; height: 100vh; }
+  #panel {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: center;
+    padding: 14px 20px; background: rgba(20, 20, 28, 0.92);
+    border-top: 1px solid rgba(90, 200, 250, 0.18);
+    color: #b9c6d6; font: 13px/1.4 system-ui, sans-serif;
+  }
+  #panel label { display: flex; align-items: center; gap: 8px; }
+  #panel input[type="range"] { width: 150px; accent-color: #5cc8ff; }
+  #panel output { width: 54px; color: #8fd8ff; font-variant-numeric: tabular-nums; }
+  #panel button {
+    padding: 6px 16px; background: #223042; color: #8fd8ff;
+    border: 1px solid rgba(90, 200, 250, 0.35); border-radius: 4px;
+    cursor: pointer; font: inherit;
+  }
+  #panel button:hover { background: #2b3d54; }
 </style>
 </head>
 <body>
 <canvas id="stage"></canvas>
+<div id="panel">
+  <label>摆长 <input id="length" type="range" min="100" max="350" step="1" value="200"><output id="length-value"></output></label>
+  <label>重力 <input id="gravity" type="range" min="1" max="25" step="0.1" value="9.8"><output id="gravity-value"></output></label>
+  <label>阻尼 <input id="damping" type="range" min="0" max="0.01" step="0.001" value="0"><output id="damping-value"></output></label>
+  <button id="reset" type="button">重置摆动</button>
+</div>
 <script>
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 
-const G = 9.8;
-const L_PX = 200;
+const G_DEFAULT = 9.8;
+const LENGTH_DEFAULT = 200;
 const PX_PER_M = 200;
-const L_M = L_PX / PX_PER_M;
 const THETA0 = 45 * Math.PI / 180;
+
+let G = G_DEFAULT;
+let L_PX = LENGTH_DEFAULT;
+let DAMPING = 0;
 
 let theta = THETA0;
 let omega = 0;
@@ -37,10 +62,11 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// 半隐式欧拉积分：alpha = -(g / L) * sin(theta)
+// 半隐式欧拉积分：alpha = -(g / L) * sin(theta)，阻尼按每秒比例衰减角速度
 function stepPhysics() {
-  const alpha = -(G / L_M) * Math.sin(theta);
+  const alpha = -(G / (L_PX / PX_PER_M)) * Math.sin(theta);
   omega += alpha * DT;
+  omega *= 1 - DAMPING * 30 * DT;
   theta += omega * DT;
 }
 
@@ -102,6 +128,27 @@ function frame(now) {
   draw();
   requestAnimationFrame(frame);
 }
+
+function bindSlider(sliderId, outputId, format, apply) {
+  const slider = document.getElementById(sliderId);
+  const output = document.getElementById(outputId);
+  const sync = () => {
+    const value = Number(slider.value);
+    output.textContent = format(value);
+    apply(value);
+  };
+  slider.addEventListener('input', sync);
+  sync();
+}
+
+bindSlider('length', 'length-value', v => v + ' px', v => { L_PX = v; });
+bindSlider('gravity', 'gravity-value', v => v.toFixed(1), v => { G = v; });
+bindSlider('damping', 'damping-value', v => v.toFixed(3), v => { DAMPING = v; });
+
+document.getElementById('reset').addEventListener('click', () => {
+  theta = THETA0;
+  omega = 0;
+});
 
 requestAnimationFrame(frame);
 </script>
