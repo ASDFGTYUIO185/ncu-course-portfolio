@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>单摆物理模拟器 · 简谐振动</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1a1a24; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+const G = 9.8;
+const L_PX = 200;
+const PX_PER_M = 200;
+const L_M = L_PX / PX_PER_M;
+const THETA0 = 45 * Math.PI / 180;
+
+let theta = THETA0;
+let omega = 0;
+
+const DT = 1 / 240;
+let accumulator = 0;
+let lastTime = performance.now();
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// 半隐式欧拉积分：alpha = -(g / L) * sin(theta)
+function stepPhysics() {
+  const alpha = -(G / L_M) * Math.sin(theta);
+  omega += alpha * DT;
+  theta += omega * DT;
+}
+
+function draw() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const pivotX = w / 2;
+  const pivotY = h * 0.28;
+  const bobX = pivotX + L_PX * Math.sin(theta);
+  const bobY = pivotY + L_PX * Math.cos(theta);
+
+  ctx.fillStyle = '#1a1a24';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = 'rgba(90, 200, 250, 0.10)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(pivotX, pivotY, L_PX, Math.PI / 2 - THETA0 - 0.05, Math.PI / 2 + THETA0 + 0.05);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(180, 210, 235, 0.75)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(pivotX, pivotY);
+  ctx.lineTo(bobX, bobY);
+  ctx.stroke();
+
+  ctx.fillStyle = '#8fd8ff';
+  ctx.beginPath();
+  ctx.arc(pivotX, pivotY, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(80, 190, 255, 0.85)';
+  ctx.shadowBlur = 34;
+
+  const glow = ctx.createRadialGradient(bobX - 6, bobY - 6, 2, bobX, bobY, 20);
+  glow.addColorStop(0, '#eaf7ff');
+  glow.addColorStop(0.45, '#5cc8ff');
+  glow.addColorStop(1, '#1b6fa8');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(bobX, bobY, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function frame(now) {
+  let elapsed = (now - lastTime) / 1000;
+  lastTime = now;
+  if (elapsed > 0.1) elapsed = 0.1;
+
+  accumulator += elapsed;
+  while (accumulator >= DT) {
+    stepPhysics();
+    accumulator -= DT;
+  }
+
+  draw();
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
